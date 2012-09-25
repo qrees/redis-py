@@ -34,3 +34,7 @@ class WatchError(RedisError):
 
 class NoScriptError(ResponseError):
     pass
+
+
+class TimeoutError(RedisError):
+    pass

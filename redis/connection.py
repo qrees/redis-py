@@ -12,7 +12,7 @@ from redis.exceptions import (
     InvalidResponse,
     AuthenticationError,
     NoScriptError,
-)
+    TimeoutError)
 
 try:
     import hiredis
@@ -49,6 +49,7 @@ class PythonParser(object):
     def on_connect(self, connection):
         "Called when the socket connects"
         self._fp = connection._sock.makefile('rb')
+        self._sock = connection._sock
         if connection.decode_responses:
             self.encoding = connection.encoding
 
@@ -57,6 +58,14 @@ class PythonParser(object):
         if self._fp is not None:
             self._fp.close()
             self._fp = None
+
+
+    def readline(self):
+        buf = char = self._sock.recv(1)
+        while char != "\n":
+            char = self._sock.recv(1)
+            buf += char
+        return buf
 
     def read(self, length=None):
         """
@@ -84,8 +93,10 @@ class PythonParser(object):
                 return self._fp.read(bytes_left)[:-2]
 
             # no length, read a full line
-            return self._fp.readline()[:-2]
-        except (socket.error, socket.timeout):
+            return self.readline()[:-2]
+        except socket.timeout:
+            raise TimeoutError("Timeout while wating for data")
+        except socket.error:
             e = sys.exc_info()[1]
             raise ConnectionError("Error while reading from socket: %s" %
                                   (e.args,))
