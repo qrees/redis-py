@@ -62,7 +62,7 @@ class PythonParser(object):
 
     def readline(self):
         buf = char = self._sock.recv(1)
-        while char != "\n":
+        while len(char) > 0 and char != "\n":
             char = self._sock.recv(1)
             buf += char
         return buf
